@@ -1,4 +1,8 @@
 import logging
+import asyncio
+import os
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
@@ -10,8 +14,19 @@ logging.basicConfig(
     level=logging.INFO
 )
 
+# Заглушка для Render, чтобы он видел открытый порт
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+def run_dummy_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
+    server.serve_forever()
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Вопрос 1: Имя (Правильный "в) Ф" на 3-й позиции)
     keyboard = [
         [InlineKeyboardButton("а) А", callback_data="a"), InlineKeyboardButton("б) М", callback_data="m")],
         [InlineKeyboardButton("в) Ф", callback_data="q1_f"), InlineKeyboardButton("г) Ж", callback_data="j")]
@@ -31,23 +46,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.callback_query.edit_message_text(text, reply_markup=reply_markup, parse_mode="Markdown")
 
 async def show_question_2(query, hint_prefix=""):
-    # Вопрос 2: Возраст (Правильный "г) 18" на 4-й позиции)
     keyboard = [
         [InlineKeyboardButton("а) 16 👶", callback_data="q2_16"), InlineKeyboardButton("б) 20 😎", callback_data="q2_20")],
         [InlineKeyboardButton("в) 25 👴", callback_data="q2_25"), InlineKeyboardButton("г) 18 🔞", callback_data="q2_18")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    text = (
-        f"{hint_prefix}"
-        "Первый вопрос позади! 🎉\n\n"
-        "**Вопрос №2**:\n"
-        "✨ **А сколько лет твоему Маге?** ✨"
-    )
+    text = f"{hint_prefix}Первый вопрос позади! 🎉\n\n**Вопрос №2**:\n✨ **А сколько лет твоему Маге?** ✨"
     await query.edit_message_text(text, reply_markup=reply_markup, parse_mode="Markdown")
 
 async def show_question_3(query, hint_prefix=""):
-    # Вопрос 3: Увлечения (Правильный "б) Создание приложений" на 2-й позиции)
     keyboard = [
         [InlineKeyboardButton("а) Профессиональный балет 🩰", callback_data="q3_ballet")],
         [InlineKeyboardButton("б) Создание приложений, игр и сайтов 💻", callback_data="q3_dev")],
@@ -56,44 +64,27 @@ async def show_question_3(query, hint_prefix=""):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    text = (
-        f"{hint_prefix}"
-        "Красота! Двигаемся дальше! 🚀\n\n"
-        "**Вопрос №3**:\n"
-        "✨ **Чем увлекается Мага больше всего?** ✨"
-    )
+    text = f"{hint_prefix}Красота! Двигаемся дальше! 🚀\n\n**Вопрос №3**:\n✨ **Чем увлекается Мага больше всего?** ✨"
     await query.edit_message_text(text, reply_markup=reply_markup, parse_mode="Markdown")
 
 async def show_question_4(query, hint_prefix=""):
-    # Вопрос 4: Что любит смотреть (Правильный "в) Аниме" на 3-й позиции)
     keyboard = [
         [InlineKeyboardButton("а) Турецкие сериалы 🌹", callback_data="q4_turkish"), InlineKeyboardButton("б) Вести недели 📺", callback_data="q4_news")],
         [InlineKeyboardButton("в) Аниме ⛩️", callback_data="q4_anime"), InlineKeyboardButton("г) Кулинарные шоу 👨‍🍳", callback_data="q4_cooking")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    text = (
-        f"{hint_prefix}"
-        "Уже близко к финалу! 🎯\n\n"
-        "**Вопрос №4**:\n"
-        "✨ **Что Мага обожает смотреть в свободное время?** ✨"
-    )
+    text = f"{hint_prefix}Уже близко к финалу! 🎯\n\n**Вопрос №4**:\n✨ **Что Мага обожает смотреть в свободное время?** ✨"
     await query.edit_message_text(text, reply_markup=reply_markup, parse_mode="Markdown")
 
 async def show_question_5(query, hint_prefix=""):
-    # Вопрос 5: Сигареты (Правильный "б) L&M" на 2-й позиции)
     keyboard = [
         [InlineKeyboardButton("а) Winston 🚬", callback_data="q5_winston"), InlineKeyboardButton("б) L&M 🚬", callback_data="q5_lm")],
         [InlineKeyboardButton("в) LD 🚬", callback_data="q5_ld"), InlineKeyboardButton("г) Chapman 🍫", callback_data="q5_chapman")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    text = (
-        f"{hint_prefix}"
-        "И финальный вопрос викторины! 🏆\n\n"
-        "**Вопрос №5**:\n"
-        "✨ **Какие сигареты курит Мага?** ✨"
-    )
+    text = f"{hint_prefix}И финальный вопрос викторины! 🏆\n\n**Вопрос №5**:\n✨ **Какие сигареты курит Мага?** ✨"
     await query.edit_message_text(text, reply_markup=reply_markup, parse_mode="Markdown")
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -102,7 +93,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     choice = query.data
     
-    # --- ОБРАБОТКА ВОПРОСА 1 ---
     if choice == "q1_f":
         await show_question_2(query, hint_prefix="Угадала! Конечно же на 'Ф', ведь его любимой девушкой являешься ты! ❤️\n\n")
     elif choice in ["a", "m", "j"]:
@@ -120,7 +110,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup(retry_keyboard)
         )
 
-    # --- ОБРАБОТКА ВОПРОСА 2 ---
     elif choice == "q2_18":
         await show_question_3(query, hint_prefix="Красава! В точку — 18 лет! 😎\n\n")
     elif choice in ["q2_20", "q2_16", "q2_25"]:
@@ -138,7 +127,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup(retry_keyboard)
         )
 
-    # --- ОБРАБОТКА ВОПРОСА 3 ---
     elif choice == "q3_dev":
         await show_question_4(query, hint_prefix="Естественно! Кодинг и IT — ванлав! 💻\n\n")
     elif choice in ["q3_ballet", "q3_rubik", "q3_stitch"]:
@@ -158,9 +146,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup(retry_keyboard)
         )
 
-    # --- ОБРАБОТКА ВОПРОСА 4 ---
     elif choice == "q4_anime":
-        await show_question_5(query, hint_prefix="Точно, Аниме! ⛩️️ Наш человек!\n\n")
+        await show_question_5(query, hint_prefix="Точно, Аниме! ⛩ Наш человек!\n\n")
     elif choice in ["q4_turkish", "q4_cooking", "q4_news"]:
         hints_q4 = {
             "q4_turkish": "100 серий страданий? 😅 Не-е-ет, это слишком даже для меня! Попробуй еще 😉",
@@ -176,9 +163,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup(retry_keyboard)
         )
 
-    # --- ОБРАБОТКА ВОПРОСА 5 ---
     elif choice == "q5_lm":
-        # Финал / Победа
         win_keyboard = [[InlineKeyboardButton("сыграть еще раз 🔄", callback_data="restart")]]
         await query.edit_message_text(
             text=(
@@ -208,8 +193,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+    # Запускаем фоновый HTTP-сервер для Render
+    threading.Thread(target=run_dummy_server, daemon=True).start()
     
+    app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(start, pattern="^restart$"))
     app.add_handler(CallbackQueryHandler(button_handler))
